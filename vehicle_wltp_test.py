@@ -45,13 +45,16 @@ theta = np.zeros(t.shape)
 
 wem, Tem, Ftrac, Pel = vehicle.apply_acceleration_cycle(t, a, theta=0, v0=0, gear=0, params={})
 
-plt.plot(t, Tem * wem / 1000)
-plt.plot(t, Pel / 1000)
+plt.plot(t, Tem * wem / 1000, label = 'Energie mécanique')
+plt.plot(t, Pel / 1000, label = 'Energie électrique' )
+plt.legend()
 plt.show()
+
 
 from scipy import integrate
 
 Eel = integrate.cumtrapz(Pel/(1000*3600), t, initial=0)
 plt.figure(2)
-plt.plot(t,Eel)
+plt.plot(t,Eel, label = 'Consommation électrique (kWh)')
+plt.legend()
 plt.show()

@@ -114,7 +114,7 @@ class ElectricDrive():
 		"""Return the electric drive efficiency map."""
 		# TODO: implement 2D interpolation 
 		signP = np.sign(T * w)
-		return self.effmotor * np.maximum(signP, 0) - 1./self.effgen * np.minimum(signP, 0)
+		return 1/self.effmotor * np.maximum(signP, 0) - self.effgen * np.minimum(signP, 0)
 		
 	def input_power(self, T, w): 
 		"""Return the electric drive input electric power."""
