@@ -48,3 +48,10 @@ wem, Tem, Ftrac, Pel = vehicle.apply_acceleration_cycle(t, a, theta=0, v0=0, gea
 plt.plot(t, Tem * wem / 1000)
 plt.plot(t, Pel / 1000)
 plt.show()
+
+from scipy import integrate
+
+Eel = integrate.cumtrapz(Pel/(1000*3600), t, initial=0)
+plt.figure(2)
+plt.plot(t,Eel)
+plt.show()
