@@ -1,4 +1,4 @@
-coutPompeElec = 1 #Demander groupe 3
+"""coutPompeElec = 1 #Demander groupe 3
 coutPompeHydro = 1 #Demander groupe 2
 prixLitreCarburant = 1.3
 
@@ -10,6 +10,7 @@ Attributs dont jai besoin (introduits par self)
     puissance : int en cv #Puissance de moteur
     modele : str  parmi {'ICEV', 'HEV', 'PHEV', 'BEV', 'BEVH2', 'FECV', 'FCPHE'} 
     conversion : boolean #si conversion à électrique
+    
 
 
 Calcul des couts supplémentaires : malusCO2, malusAnnuel, malusOccasion, primeConversion, bonusEcologique
@@ -66,6 +67,12 @@ MalusOccasion = {10 : 100, 11 : 100, 12 : 300, 13 : 300, 14 : 300, 15 : 1000}
             bonusEcologique = 2000
 
 
+
+coutEntretien = 0 
+if modele = ''
+
+coutUtilisation = coutPompe*consommation1Cycle*nbreCycleConduite
+"""
 
 
 
