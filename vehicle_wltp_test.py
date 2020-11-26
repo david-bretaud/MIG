@@ -7,7 +7,7 @@ params = {}
 
 # Vehicle parameters 
 params['m'] = 1500 				# Vehicle empty mass 
-params['Cd'] = 0.33				# Drag coefficient []
+params['Cd'] = 0.33				# Drag coefficient [] #0.29 toyota mirai
 params['Af'] = 2.35  			# Frontal area [m2]
 params['Fbrkmax'] = 15e3 		# Maximal break force [N]
 
@@ -37,7 +37,8 @@ params['wind'] = 0				# Head wind [m/s]
 vehicle = Vehicle(params)
 
 # Import WLTP driving cycle 
-wltp = DrivingCycle('wltp_classe_3.csv')
+wltp = DrivingCycle("C:\\Users\\paul\\OneDrive\\Bureau\\cours\\MIG_info\\notebook\\MIG\\wltp_classe_3.csv")
+
 t,v,a = wltp.tva() 
 
 # No road grade 
@@ -45,16 +46,55 @@ theta = np.zeros(t.shape)
 
 wem, Tem, Ftrac, Pel = vehicle.apply_acceleration_cycle(t, a, theta=0, v0=0, gear=0, params={})
 
-plt.plot(t, Tem * wem / 1000, label = 'Energie mécanique')
-plt.plot(t, Pel / 1000, label = 'Energie électrique' )
-plt.legend()
-plt.show()
-
-
-from scipy import integrate
+from scipy import integrate 
 
 Eel = integrate.cumtrapz(Pel/(1000*3600), t, initial=0)
-plt.figure(2)
-plt.plot(t,Eel, label = 'Consommation électrique (kWh)')
+distance = integrate.cumtrapz(v, t, initial=0)
+
+plt.figure(1)
+plt.plot(t,v,color='C1')
+plt.xlabel('temps(s)')
+plt.ylabel('vitesse voiture')
+
+plt.figure(6)
+plt.plot(t,100*Eel/(distance/1000), label = 'consommation instantanée(kWh/100km)')
+plt.xlabel('temps(s)')
+plt.ylabel('consommation (kWh/100km)')  #pas vraiment la consommation instantanée
 plt.legend()
+
+plt.figure(2)
+plt.plot(t,distance/1000)
+plt.ylabel('distance parcourue(km)')
+plt.xlabel('temps(s)')
+
+
+
+plt.figure(3)
+plt.plot(t, Tem * wem / 1000 , label = 'puissance mécanique moteur')
+plt.plot(t, Pel / 1000 , label='puissance élec')
+plt.legend()
+plt.xlabel('temps(s)')
+plt.ylabel('puissance électrique(kW)')
+
+
+
+
+
+
+plt.figure(4)
+plt.plot(t,Eel, label = 'énergie électrique consommée')
+plt.xlabel('temps(s)')
+plt.ylabel("énergie(kWh)")
+
+plt.legend()
+
+
+
+plt.figure(5)
+plt.plot(t, Eel*2/33,3)  #conversion energie en kg de H2
+plt.xlabel('temps(s)')
+plt.ylabel('consommation hydrogène(kg)')
+plt.ylim(0,1)
+
+
 plt.show()
