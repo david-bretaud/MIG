@@ -5,6 +5,9 @@ from scipy import integrate
 
 params = {}
 
+# Rendement chaîne énergie
+effPAC = 0.5       #efficacité pile à combustible
+effBattEV = 0.95      #efficacité batterie EV
 # Vehicle parameters 
 params['m'] = 1500 				# Vehicle empty mass 
 params['Cd'] = 0.33				# Drag coefficient [] #0.29 toyota mirai
@@ -57,7 +60,7 @@ plt.xlabel('temps(s)')
 plt.ylabel('vitesse voiture')
 
 plt.figure(6)
-plt.plot(t,100*Eel/(distance/1000), label = 'consommation instantanée(kWh/100km)')
+plt.plot(t,effBattEV*100*Eel/(distance/1000), label = 'consommation (kWh/100km) sur le trajet choisie')
 plt.xlabel('temps(s)')
 plt.ylabel('consommation (kWh/100km)')  #pas vraiment la consommation instantanée
 plt.legend()
@@ -91,7 +94,7 @@ plt.legend()
 
 
 plt.figure(5)
-plt.plot(t, Eel*2/33,3)  #conversion energie en kg de H2
+plt.plot(t, Eel/(33.3*effPAC))  #conversion energie en kg de H2
 plt.xlabel('temps(s)')
 plt.ylabel('consommation hydrogène(kg)')
 plt.ylim(0,1)
