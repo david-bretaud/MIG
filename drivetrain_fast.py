@@ -247,7 +247,7 @@ class Wheels:
 		"""Calculate the torque from the longitudinal force."""
 		return F * self.r 
 
-class Transmission():
+class Transmission:
 	"""
 	For efficiency, see : https://x-engineer.org/automotive-engineering/drivetrain/transmissions/drivetrain-losses-efficiency/
 	"""
@@ -255,6 +255,7 @@ class Transmission():
 		"""Initialize the Transmission instance."""
 		self.N = params.get('transRatio', [20.4]) # Transmission ratios []
 		self.b = params.get('b', 0.01)  # Friction coefficient []
+		self.effTransmission = params.get('effTransmission',0.95)
 
 	def friction_torque(self, wout):
 		"""Calculate the friction force acting on the transmission bearings and gears."""
@@ -275,7 +276,9 @@ class Transmission():
 
 	def input_torque(self, Tout, wout, gear=0): 
 		"""Calculate the input torque."""
-		Tin =  Tout / self.N[gear] + self.friction_torque(wout)
+		#Tin = Tout / self.effTransmission ** np.sign(wout) / self.N[gear] 	#autre modele pedro
+		
+		Tin =  Tout / self.N[gear] + self.friction_torque(wout)/self.N[gear]   #autre modèle choisie qui semble plus cohérent en valeur finale de conso
 		return Tin
 
 class Driver(): 
