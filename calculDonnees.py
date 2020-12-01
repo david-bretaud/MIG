@@ -38,13 +38,13 @@ def dico_voiture(file) :
 
 def consoEssence(x):
     """
-    Renvoie la consommation d'essence en L/100km en fonction de la masse du véhicule
+    Renvoie la consommation de carburant d'un ICEV-essence en L/100km en fonction de la masse du véhicule
     """
     return 2*10**(-6)*x**2+0.0005*x + 3.3549
 
 def consoDiesel(x):
     """
-    Renvoie la consommation de diesel en L/100km en fonction de la masse du véhicule
+    Renvoie la consommation de carburant d'un ICEV-diesel en L/100km en fonction de la masse du véhicule
     """
     return 2*10**(-6)*x**2-0.0008*x + 3.198
 
@@ -62,7 +62,7 @@ def consoPHEV(x):
 
 def calculEmissionCO2(moteur, ess, modele, motorisation, consoNRJ, masseTot, gamma) :
     """
-    Calcul les émissions de CO2 d'un moteur thermique ou électrique en kgC02/100km en fonction des paramètres rentrés
+    Calcul les émissions de CO2 en kg/100km à l'utilisation d'un moteur thermique ou électrique en kgC02/100km en fonction des paramètres rentrés 
     """
     if gamma : 
         if moteur[0] == "MoteurElectrique" :
@@ -145,14 +145,15 @@ class Voitures :
         self.taille = param.get('taille') # str parmi{'petite', 'berline', 'citadine', 'dcompacte', 'familiale'} (le d pour avoir un indice différent)
         self.occasion = param.get('occasion', False) # boolean Achat véhicule d'occasion, 
         self.conversion = param.get('conversion') # boolean si conversion thermique à électrique/hybride
-        self.distQuot = param.get('distQuot') # int distance quotienne. 
+        self.distQuot = param.get('distQuot') # int distance quotienne moyenne.
+        self.frequence = param.get('frequence') #nombre de réalisation de la distance quotidienne par semaine 
         self.nombreAnnees = param.get('nombreAnnees') #int : nombre d'années d'utilisation
         self.modele = param.get('modele') # str  parmi {'ICEV', 'HEV', 'PHEV', 'BEV'} #'BEVH2' on s'en passera, et 'FCEV' et 'FCPHE' manques d'infos pour le moment, il faut compléter le .csv
         #==============================
         #   Attributs intermédiaires
         #==============================
         self.puissance = 0 #Puissance moteur nécessaire -----> ALGORITHME 
-        self.consommationNRJ = 0 #consommation d'énergie sur 100km, en kWh -------> ALGORITHME
+        self.consommationNRJ = 0 #consommation d'énergie sur 100km, en kWh/100km -------> ALGORITHME
         self.motorisation = self.taille[0]+'-'+self.modele
         self.masseCarosse = DictionnaireVoiture.get(motorisation).get('poids')
         self.masseTotale = 0
@@ -161,7 +162,7 @@ class Voitures :
         self.moteur2 = None #[str parmi {"MoteurElectrique", "MoteurThermique", "None"} , int Puissance en kW (0 si None), boolean True ou False, ratio entre 0 et 1, ..., masse]
         self.ess1 = None # Liste type ["Batterie", Capacité (en kWh), ...] / ["PileCombustible", Puissance en kW, ..., réservoir hydrogène en kg de H2]
         self.ess2 = None# Si pas d'Ess2, ["None"]
-        self.kilometrage = 0 #distance totale parcourue sur toute la vie du véhicule
+        self.kilometrage = param.get('distQuot')*param.get('frequence')*52*param.get('nombreAnnees') #distance totale parcourue sur toute la vie du véhicule
         #======================
         #   Attributs finaux
         #======================
