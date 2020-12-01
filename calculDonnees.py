@@ -1,11 +1,14 @@
 import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
+# from drivingfast_wltp import *
 
 
 #=============================
 #     Constantes globales 
 #============================= 
+
+mix_elec = 1 # A DEFINIR
 
 prixMoteurElectrique = 12 # €/kW
 prixMoteurThermique = 25 # €/kW et comprend l'ICE
@@ -20,7 +23,7 @@ prixEssence = 1.35 #€/L
 emissionEssence = 2.3 #kgCO2/L
 emissionDiesel = 2.7 #kgCo2/L
 emissionElectricite = 0.056 # en kg/kWh pour le mix français (donnée notebook)
-emissionHydrogene = 2  # en kg de CO2/ kg de H2 ie en kg de CO2/16 kWh (en comptabilisant les 50% de rendement)
+emissionHydrogene = mix_elec/100*5.6  # en kg de CO2/ kg de H2 ie en kg de CO2/16 kWh (en comptabilisant les 50% de rendement)
 
 
 #=========================
@@ -60,19 +63,28 @@ def consoPHEV(x):
     """
     return 2.57 + (x-780)*0.82/1550
 
+def consoEV() : # A DEFINIR
+    """
+    Renvoie la consommation d'énergie électrique en kWh/100km
+    """
+    pass
+
+def consoFCEV() : # A DEFINIR 
+    pass
+
 def calculEmissionCO2(moteur, ess, modele, motorisation, consoNRJ, masseTot, gamma) :
     """
     Calcul les émissions de CO2 en kg/100km à l'utilisation d'un moteur thermique ou électrique en kgC02/100km en fonction des paramètres rentrés 
     """
     if gamma : 
-        if moteur[0] == "MoteurElectrique" :
-            if ess[0] == "Batterie" :
-                return consoNRJ*emissionElectricite*moteur[3]
-            elif ess[0] == "PileCombustible" :
-                return consoNRJ*emissionHydrogene*moteur[3]/16
-        elif moteur[0] == "MoteurThermique":
-            if moteur[-1] : #Si c'est un moteur essence
-                if smodele == "ICEV" :
+        if moteur.get('Nom') == "MoteurElectrique" :
+            if ess.get('Nom') == "Batterie" :
+                return consoNRJ*emissionElectricite*moteur.get('Ratio')
+            elif ess.get('Nom') == "PileCombustible" :
+                return consoNRJ*emissionHydrogene*moteur.get('Ratio')
+        elif moteur.get('Nom') == "MoteurThermique":
+            if moteur.get('Carac') : #Si c'est un moteur essence
+                if modele == "ICEV" :
                     return consoEssence(masseTot)*emissionEssence
                 elif modele == "HEV" :
                     return consoHEV(masseTot)*emissionEssence
@@ -97,26 +109,31 @@ def coutEntretien(mod):
         prix = np.random.randint(450, 750)
     elif mod == 'FCEV' or mod == 'FCPHE' :
         prix = np.random.randint(413, 706)
-"""
+
 def calculCoutMoteur(moteur):
-	if moteur[0] == "MoteurElectrique":
-        if moteur[2] :
-            alpha = 6/5
-        else : 
+    if moteur.get('Nom') == "MoteurElectrique":
+        if moteur.get('Carac')==True :
+            alpha = 1.2
+        else :
             alpha = 1
-		return moteur[1]*prixMoteurElectrique*alpha
-	elif moteur[0] == "MoteurThermique":
-		return moteur[1]*prixMoteurThermique
-	else:
+        return moteur.get('Puissance')*prixMoteurElectrique*alpha
+    elif moteur.get('Nom') == "MoteurThermique" :
+        return moteur.get('Puissance')*prixMoteurThermique
+    else :
         return 0
-"""
+
 def calculCoutESS(ess) :
-	if ess[0] == "Batterie" :
-		return ess[1]*prixBatterie
-	elif ess[0] == "PileCombustible" :
-		return ess[1]*prixPile + ess[-1]*prixReservoirH2
+	if ess.get('Nom') == "Batterie" :
+		return ess.get('Puissance')*prixBatterie
+	elif ess.get('Nom') == "PileCombustible" :
+		return ess.get('Puissance')*prixPile + ess.get('Reservoir')*prixReservoirH2
 	return 0
 
+def massePAC(puissance):
+    '''
+    renvoie masse de la PAC en fonction de la puissance(modele 10/4 yourik) avec la donnée 56kg pour 113 kW Mirai
+    '''
+    return (puissance/113)*56*4/10
 
 #=======================
 #     Dictionnaires 
@@ -147,7 +164,7 @@ class Voitures :
         self.conversion = param.get('conversion') # boolean si conversion thermique à électrique/hybride
         self.distQuot = param.get('distQuot') # int distance quotienne moyenne.
         self.frequence = param.get('frequence') #nombre de réalisation de la distance quotidienne par semaine 
-        self.nombreAnnees = param.get('nombreAnnees') #int : nombre d'années d'utilisation
+        self.nombreAnnees = param.get('nombreAnnees', 10) #int : nombre d'années d'utilisation
         self.modele = param.get('modele') # str  parmi {'ICEV', 'HEV', 'PHEV', 'BEV'} #'BEVH2' on s'en passera, et 'FCEV' et 'FCPHE' manques d'infos pour le moment, il faut compléter le .csv
         #==============================
         #   Attributs intermédiaires
@@ -157,6 +174,7 @@ class Voitures :
         self.motorisation = self.taille[0]+'-'+self.modele
         self.masseCarosse = DictionnaireVoiture.get(motorisation).get('poids')
         self.masseTotale = 0
+        self.coefficientTrainee = DictionnaireVoiture.get(motorisation).get('CoeffTrainee')
         self.moteur1 = None #[str parmi {"MoteurElectrique", "MoteurThermique"} , int Puissance en kW, boolean True ou False, ratio entr 0 et 1 donnant le ratio d'énergie fourni par cette source, ..., masse] 
             #avec True pour MoteurElectrique == BMS en plus, True pour MoteurThermique == Essence (False si diesel)
         self.moteur2 = None #[str parmi {"MoteurElectrique", "MoteurThermique", "None"} , int Puissance en kW (0 si None), boolean True ou False, ratio entre 0 et 1, ..., masse]
@@ -166,20 +184,24 @@ class Voitures :
         #======================
         #   Attributs finaux
         #======================
-        self.prixAchat = 0
-        self.coutBonusMalus = 0
-        self.coutEntretienTotal = 0
-        self.coutUtilisation = 0
-        self.TCO = 0
+        self.prixAchat = 0 # €
+        self.coutBonusMalus = 0 # €
+        self.coutEntretienTotal = 0 # €
+        self.coutUtilisation = 0 # €
+        self.TCO = 0 # €
         self.emissionCO2 = 0 #Emission de kgCO2 sur 100 km à l'utilisation
-        self.emissionConception = 0
-        self.emissionEntretien = 0
+        self.emissionConception = 0 # kgCO2/100km
+        self.emissionEntretien = 0 # kgCO2
         
     #==============
     #   Méthodes 
     #============== 
     def __dimensionnementESS__(self) : # A DEFINIR !
         pass
+
+    def __update_puissance_NRJ__(self): #A DEFINIR !
+        #self.puissance, self.consommationNRJ = drivetrain_fast(self.masseTotale, self.coefficientTrainee)
+        pass 
 
     def __update_moteur_ess__(self) :
         self.moteur1, self.moteur2, self.ess1, self.ess2 = dimensionnementESS(self.distQuot, self.modele, self.puissance, self.consommationNRJ, self.drivingCycle)
@@ -190,14 +212,14 @@ class Voitures :
 
     def __update_masseTotale__(self) : 
         poidsESS = 0
-        for ess in [ess1, ess2]:
-            if ess[0] == "Batterie" :
-                poidsESS += ess[1]/0.120 # 1 kg de batterie = 120 Wh
-            elif ess[0] == "PileCombustible" :
-                poidsESS += ess[-1]*20 #20kg de réservoir pour 1 kg de H2
-                poidsESS += ess[1]*ratio ##### A COMPLETER : RATIO = poids de la pile en kg/kW
-        for mot in [moteur1, moteur2] :
-            poidsESS += mot[-1]
+        for ess in [self.ess1, self.ess2]:
+            if ess.get('Nom') == "Batterie" :
+                poidsESS += ess.get('Puissance')/0.120 # 1 kg de batterie = 120 Wh
+            elif ess.get('Nom') == "PileCombustible" :
+                poidsESS += ess.get('Reservoir')*20 #20kg de réservoir pour 1 kg de H2
+                poidsESS += ess.get('Puissance')*massePAC(ess.get('Puissance'))
+        for mot in [self.moteur1, self.moteur2] :
+            poidsESS += mot.get('Masse')
         self.masseTotale = self.masseCarosse + poidsESS
 
     def __update_PrixAchat__(self):
@@ -270,17 +292,48 @@ class Voitures :
         
         #Eventuel changement de batterie ou de pile à combustible
         coutMaj = 0
-        if self.ess1[0] == "Batterie" :
-            if kilometrage >= 160000 :
+        if self.ess1.get('Nom') == "Batterie" :
+            if self.kilometrage >= 160000 :
                 coutMaj = calculCoutESS(self.ess1)
-        elif self.ess1[0] == "FuelCell" :
-            if kilometrage >= 200000: 
+        elif self.ess1.get('Nom') == "PileCombustible" :
+            if self.kilometrage >= 200000: 
                 coutMaj = calculCoutESS(self.ess1)
         self.coutEntretienTotal = cost + coutMaj
 
-    def __update_coutUtilisation__(self): # A DEFINIR !
-        pass
-
+    def __update_coutUtilisation__(self): # A COMPLETER : RENSEIGNER LES ARGUMENTS DES FONCTIONS consoEV et consoFCEV
+        if self.moteur1.get('Nom')== "MoteurElectrique" and self.moteur2.get('Nom') == "None" : 
+            if self.ess1.get('Nom')== "Batterie":
+                self.coutUtilisation += self.kilometrage*consoEV(self)/100*prixPompeElec    #facteur1/100 car conso donnée en energie/100km
+            else : 
+                self.coutUtilisation += self.kilometrage*consoFCEV(self)/100*prixPompeHydro
+        elif self.moteur1.get('Nom') == "MoteurThermique" and self.moteur2.get('Nom') == "None" :
+            if self.moteur1.get('Carac') :
+                self.coutUtilisation += self.kilometrage*consoEssence(self.masseTotale)/100*prixEssence
+            else :
+                self.coutUtilisation += self.kilometrage*consoDiesel(self.masseTotale)/100*prixDiesel
+        elif self.moteur1.get('Nom') == "MoteurThermique" and self.moteur2.get('Nom') == "MoteurElectrique" : 
+            if self.ess2.get('Nom') == "Batterie":
+                if self.moteur1.get('Carac'):
+                    self.coutUtilisation += self.kilometrage*(
+                    consoEV(self)/100*prixPompeElec*self.moteur2.get('Ratio') + consoEssence(self)/100*prixEssence*self.moteur1.get('Ratio'))
+                else : 
+                    self.coutUtilisation += self.kilometrage*(
+                    consoEV(self)/100*prixPompeElec*self.moteur2.get('Ratio') + consoDiesel(self)/100*prixDiesel*self.moteur1.get('Ratio'))
+            elif self.ess2.get('Nom') == "PileCombustible" : 
+                if self.moteur1.get('Carac'):
+                    self.coutUtilisation += self.kilometrage*(
+                    consoFCEV(self)/100*prixPompeHydro*self.moteur2.get('Ratio') + consoEssence(self)/100*prixEssence*self.moteur1.get('Ratio'))
+                else : 
+                    self.coutUtilisation += self.kilometrage*(
+                    consoFCEV(self)/100*prixPompeHydro*self.moteur2.get('Ratio') + consoDiesel(self)/100*prixDiesel*self.moteur1.get('Ratio'))
+        elif self.moteur1.get('Nom') == "MoteurElectrique" and self.moteur2.get('Nom') == "MoteurElectrique" : 
+            if self.ess1[0] == 'Batterie':
+                self.coutUtilisation += self.kilometrage*(
+                consoEV(self)/100*prixPompeElec*self.moteur1.get('Ratio') + consoFCEV(self)/100*prixPompeHydro*self.moteur2.get('Ratio'))
+            else : 
+                self.coutUtilisation += self.kilometrage*(
+                consoFCEV(self)/100*prixPompeHydro*self.moteur1.get('Ratio') + consoEV(self)/100*prixPompeElec*self.moteur2.get('Ratio'))
+    
     def __update_TCO__(self) :
         self.TCO = self.prixAchat + self.coutBonusMalus + self.coutEntretienTotal + self.coutUtilisation
 
@@ -291,6 +344,7 @@ class Voitures :
         pass
 
     def __MAJ__(self):
+        self.__update_puissance_NRJ__()
         self.__update_moteur_ess__()
         self.__update_emissionCO2__()
         self.__update_masseTotale__()
