@@ -12,7 +12,7 @@ AIR_DENSITY_25C_ONE_ATM = 1.1839 # Air density at 25 Celsius and 101325 Pa
 
 class DrivingCycle: 
 	def __init__(self, filename, N=-1):
-		dc = np.genfromtxt(filename, delimiter = ",", skip_header = 2) 
+		dc = np.genfromtxt(filename, delimiter = ",", skip_header = 0) 
 		self.dc = dc[:N,:]
 		self.t = dc[:N,0]
 		self.v = dc[:N,1]
@@ -99,7 +99,7 @@ class ElectricDrive():
 	def __init__(self, params = {}):
 		"""Initialize the DCElectricMotor instance."""
 		self.J = params.get('Jem', 0.0001) 			# Inertia moment [kg.m2]
-		self.Tmax = params.get('Tmax', 50) 			# Max torque [N.m]
+		self.Tmax = params.get('Tmax', 250) 			# Max torque [N.m]
 		self.Pmax = params.get('Pmax', 12e3)		# Max power [W]
 		self.effmotor = params.get('effEDm', 0.9)	# Electric drive efficiency in motor mode []
 		self.effgen = params.get('effEDg', 0.75)	# Electric drive efficiency in generator mode []
@@ -123,10 +123,10 @@ class ElectricDrive():
 class Vehicle:
 	def __init__(self, params = {}):
 		"""Initialize Vehicle instance.""" 
-		self.m = params.get('m', 115.)  
+		self.m = params.get('masseTotale', 1700)  
 		self.Cd = params.get('Cd', 0.3)
 		self.Af = params.get('Af', 0.3)
-		self.AfCd = params.get('AfCd', self.Af * self.Cd) 
+		self.AfCd = params.get('CoeffTrainee', 0.60 ) 
 
 		self.Fbrkmax = params.get('Fbrkmax', 1500)
 		self.motor = params.get('motor', ElectricDrive(params))
@@ -191,15 +191,12 @@ class Vehicle:
 		Faxl = self.wheels.torque_to_force(Taxl) 
 		return Faxl, Taxl, waxl
 
-	def apply_acceleration_cycle(self, t, a, theta=0, v0=0, gear=0, params={}): 
+	def apply_acceleration_cycle(self, t, a,v, theta=0, v0=0, gear=0, params={}): 
 		Tamb = params.get('Tamb', 20)	# Ambient temperature [Celsius]
 		pamb = params.get('pamb', 1013)	# Ambient pressure [hPa]
 		wind = params.get('wind', 0)	# Head wind [m/s]
 
 		# Calculate position and speed from acceleration 
-		v = integrate.cumtrapz(a, t, initial=v0)
-		x = integrate.cumtrapz(v, t, initial=0)
-
 		# Calculate other forces
 		Fg = self.force_gravity(theta)
 		Fr = self.force_rolling_friction(v, theta)
@@ -223,9 +220,9 @@ class Vehicle:
 class Wheels:
 	def __init__(self, params={}):
 		"""Initialize the wheels instance."""
-		self.r = params.get('rw', 0.3) 		# Wheel radius [m]
+		self.r = params.get('rw', 0.33) 		# Wheel radius [m]
 		self.J = params.get('Jw', .32) 		# Total wheels inertia [kg.m2]
-		self.Cr = params.get('Cr', 0.01)	# Rolling resistance coefficient []
+		self.Cr = params.get('Cr', 0.009)	# Rolling resistance coefficient []
 
 	def rotational_mass(self, J):
 		"""Calculate the equivalent rotational mass for a given inertia."""
@@ -253,8 +250,8 @@ class Transmission:
 	"""
 	def __init__(self, params = {}):
 		"""Initialize the Transmission instance."""
-		self.N = params.get('transRatio', [20.4]) # Transmission ratios []
-		self.b = params.get('b', 0.01)  # Friction coefficient []
+		self.N = params.get('transRatio', [9.]) # Transmission ratios []
+		self.b = params.get('b', 1 )  # Friction coefficient []
 		self.effTransmission = params.get('effTransmission',0.95)
 
 	def friction_torque(self, wout):
@@ -278,7 +275,7 @@ class Transmission:
 		"""Calculate the input torque."""
 		#Tin = Tout / self.effTransmission ** np.sign(wout) / self.N[gear] 	#autre modele pedro
 		
-		Tin =  Tout / self.N[gear] + self.friction_torque(wout)/self.N[gear]   #autre modèle choisie qui semble plus cohérent en valeur finale de conso
+		Tin =  Tout / self.N[gear] + self.friction_torque(wout) / self.N[gear]   #autre modÃ¨le choisie qui semble plus cohÃ©rent en valeur finale de conso
 		return Tin
 
 class Driver(): 

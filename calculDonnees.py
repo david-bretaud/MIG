@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
-# from drivingfast_wltp import *
+from drivetrain_fast import *
 
 
 #=============================
@@ -36,7 +36,12 @@ def dico_voiture(file) :
     for m in df.index :
         if df.loc[m]['poids'] == 'None' :
             continue
-        dico[m] = {critere: df.loc[m][critere] for critere in df.columns}
+        dico[m] = {}
+        for critere in df.columns :
+            if critere == 'categorie' :
+                dico[m][critere] = df.loc[m][critere]
+            else :
+                dico[m][critere] = float(df.loc[m][critere])
     return dico
 
 def consoEssence(x):
@@ -133,7 +138,15 @@ def massePAC(puissance):
     '''
     renvoie masse de la PAC en fonction de la puissance(modele 10/4 yourik) avec la donnée 56kg pour 113 kW Mirai
     '''
-    return (puissance/113)*56*4/10
+    return 56*(puissance/113)
+
+def masseMoteurThermique(puissance) :  
+    '''
+    renvoie la masse du moteur+réservoir en fonction de la puissance du moteur, puissance en entrée en kW
+    '''
+    reservoir = 35
+    moteur = puissance/0.600  #modele linéaire 600W/kg
+    return moteur + reservoir
 
 #=======================
 #     Dictionnaires 
@@ -162,25 +175,27 @@ class Voitures :
         self.taille = param.get('taille') # str parmi{'petite', 'berline', 'citadine', 'dcompacte', 'familiale'} (le d pour avoir un indice différent)
         self.occasion = param.get('occasion', False) # boolean Achat véhicule d'occasion, 
         self.conversion = param.get('conversion') # boolean si conversion thermique à électrique/hybride
-        self.distQuot = param.get('distQuot') # int distance quotienne moyenne.
+        self.distQuot = param.get('distQuot') # int distance quotienne moyenne, aller retour boulot par exemple
         self.frequence = param.get('frequence') #nombre de réalisation de la distance quotidienne par semaine 
-        self.nombreAnnees = param.get('nombreAnnees', 10) #int : nombre d'années d'utilisation
         self.modele = param.get('modele') # str  parmi {'ICEV', 'HEV', 'PHEV', 'BEV'} #'BEVH2' on s'en passera, et 'FCEV' et 'FCPHE' manques d'infos pour le moment, il faut compléter le .csv
         #==============================
         #   Attributs intermédiaires
         #==============================
+        self.kilometrageAnnuel = param.get('distQuot')*param.get('frequence')*52
+        self.nombreAnnees = min(8, 150000/(param.get('distQuot')*param.get('frequence')*52))
+        self.kilometrage = 0 #distance totale parcourue sur toute la vie du véhicule
+        self.motorisation = self.taille[0]+'-'+self.modele
         self.puissance = 0 #Puissance moteur nécessaire -----> ALGORITHME 
         self.consommationNRJ = 0 #consommation d'énergie sur 100km, en kWh/100km -------> ALGORITHME
-        self.motorisation = self.taille[0]+'-'+self.modele
-        self.masseCarosse = DictionnaireVoiture.get(motorisation).get('poids')
-        self.masseTotale = 0
+        self.masseCarosse = DictionnaireVoiture.get(motorisation).get('masseTotale')
+        self.masseTotale = DictionnaireVoiture.get(motorisation).get('masseTotale')
         self.coefficientTrainee = DictionnaireVoiture.get(motorisation).get('CoeffTrainee')
         self.moteur1 = None #[str parmi {"MoteurElectrique", "MoteurThermique"} , int Puissance en kW, boolean True ou False, ratio entr 0 et 1 donnant le ratio d'énergie fourni par cette source, ..., masse] 
             #avec True pour MoteurElectrique == BMS en plus, True pour MoteurThermique == Essence (False si diesel)
         self.moteur2 = None #[str parmi {"MoteurElectrique", "MoteurThermique", "None"} , int Puissance en kW (0 si None), boolean True ou False, ratio entre 0 et 1, ..., masse]
         self.ess1 = None # Liste type ["Batterie", Capacité (en kWh), ...] / ["PileCombustible", Puissance en kW, ..., réservoir hydrogène en kg de H2]
         self.ess2 = None# Si pas d'Ess2, ["None"]
-        self.kilometrage = param.get('distQuot')*param.get('frequence')*52*param.get('nombreAnnees') #distance totale parcourue sur toute la vie du véhicule
+        
         #======================
         #   Attributs finaux
         #======================
@@ -196,6 +211,9 @@ class Voitures :
     #==============
     #   Méthodes 
     #============== 
+    def __update_kilometrage__(self):
+        self.kilometrage = self.kilometrageAnnuel*self.nombreAnnees
+
     def __dimensionnementESS__(self) : # A DEFINIR !
         pass
 
@@ -344,6 +362,7 @@ class Voitures :
         pass
 
     def __MAJ__(self):
+        self.__update_kilometrage__()
         self.__update_puissance_NRJ__()
         self.__update_moteur_ess__()
         self.__update_emissionCO2__()
