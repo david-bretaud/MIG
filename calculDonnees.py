@@ -110,7 +110,7 @@ def dimensionnementFCEV(puis, masse):
     elif 13 <= x < 30 :
         return 0.001*(1750-(x-13)*880/17)
     else :
-        return 0.001(870+(x-30)*465/7)
+        return 0.001*(870+(x-30)*465/7)
 
 def masseMoteurThermique(puissance) :  
     '''
