@@ -9,8 +9,8 @@ RFrein = 0.1
 
 rural = '.\wltp_classe_3.csv'
 urbain = '.\cycle_urbain_test_serre.csv'
-periurbain = '.\cycle_periurbain_test.csv'
-autoroute = '.\cycle_autoroute_serre.csv'
+periurbain = '.\cycle_periurbain_test_serre.csv'
+autoroute = '.\cycle_autoroute_test_serre.csv'
 #à mettre dans le dictionnaire: masseTotale, CoeffTrainee
 
 def puissance_necessaire(dico) :
@@ -71,13 +71,15 @@ def consoEssence(dico, cycle):
     x = dico.get('masseTotale')
     moyenne = (2*10**(-6)*x**2+0.0005*x + 2.8549)
     if cycle == urbain :
-        return moyenne * 1.10
+        return moyenne*1.10
     elif cycle == autoroute : 
-        return moyenne * 1.06
+        return moyenne*1.06
     elif cycle == periurbain :
         return moyenne
     elif cycle == rural :
-        return moyenne * 0.9
+        return moyenne*0.9
+    else : 
+        return 100
     
  
 def consoDiesel(dico, cycle):
@@ -110,10 +112,11 @@ def consoHEV(dico, cycle):
     elif cycle == rural :
         return moyenne * 0.9
  
+""""
 def consoPHEV(dico, cycle):
-    """
+    ""
     Renvoie la consommation d'essence d'un PHEV en L/100km en fonction de la masse du véhicule
-    """
+    ""
     x = dico.get('masseTotale')
     moyenne = 2.07 + (x-780)*0.82/1550
     if cycle == urbain :
@@ -124,8 +127,12 @@ def consoPHEV(dico, cycle):
         return moyenne
     elif cycle == rural :
         return moyenne * 0.9
+"""
 
 def consoPHEV(dico, cycle) :
+    """
+    Renvoie la consommation d'un PHEV d'essence en L/100km et d'électricité en kWh/100km en fonction de la masse du véhicule
+    """
     if cycle == urbain :
         A = 0.30
         B = 1 - A
@@ -139,8 +146,25 @@ def consoPHEV(dico, cycle) :
         A = 0.7 
         B = 1 - A
     return [A*consoHEV(dico, cycle), B*consoEV(dico, cycle)]
-   
 
+def consoFCPHE(dico, cycle):
+    """
+    Renvoie la consommation d'un FCPHE d'hydrogène en kgH2/100km et d'électricité en kWh/100km en fonction de la masse du véhicule
+    """
+    if cycle == urbain :
+        A = 0.6
+        B = 1 - A
+    elif cycle == autoroute : 
+        A = 1
+        B = 1 - A
+    elif cycle == periurbain :
+        A = 0.8
+        B = 1 - A
+    elif cycle == rural :
+        A = 0.9 
+        B = 1 - A
+    return [A*consoFCEV(dico, cycle), B*consoEV(dico, cycle)]
+   
 
 
 

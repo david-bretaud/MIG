@@ -145,7 +145,7 @@ def masseBatterie(capacite):
 
 def calculCoutMoteur(moteur):
     if moteur.get('Nom') == "MoteurElectrique":
-        return moteur.get('Puissance')*prixMoteurElectrique*alpha
+        return moteur.get('Puissance')*prixMoteurElectrique
     elif moteur.get('Nom') == "MoteurThermique" :
         return moteur.get('Puissance')*prixMoteurThermique
     else :
@@ -176,7 +176,9 @@ def coutEntretien(mod):
         prix = np.random.randint(450, 750)
     elif mod == 'FCEV' or mod == 'FCPHE' :
         prix = np.random.randint(413, 706)
-
+    else :
+        prix = 0
+    return prix
 
 #=======================
 #     Dictionnaires 
@@ -235,10 +237,10 @@ class Voitures :
         self.coutEntretienTotal = 0 # €
         self.coutUtilisation = 0 # €
         self.TCO = 0 # €
-        self.emissionConception = 0 # kgCO2/100km
-        self.emissionEntretien = 0 # kgCO2/100km
-        self.emissionUtilisation = 0 #Emission de kgCO2 sur 100 km à l'utilisation
-        self.emissionRecyclage = 0 #kgCO2/100km
+        self.emissionConception = 0 # en kgCO2
+        self.emissionUtilisation = 0 # en kgCO2
+        self.emissionRecyclage = 0 # en kgCO2
+        self.emissionTotale = 0 # en kgCO2
         
     #==============
     #   Méthodes 
@@ -246,65 +248,67 @@ class Voitures :
      
     def __update_automatique__(self):
         self.kilometrage = self.kilometrageAnnuel*self.nombreAnnees
-        self.coefficientTrainee = DictionnaireVoiture.get(self.taille[0]+'-'+'ICEV').get('CoeffTrainee')
+        self.coefficientTrainee = DictionnaireVoiture.get(self.taille[0]+'-'+'ICEV').get('coeffTrainee')
         self.masseTotale = DictionnaireVoiture.get(self.motorisation).get('masseTotale')
 
     def __update_dico__(self): 
-        self.dico = {'masseTotale' : self.masseTotale, 'coeffTrainee' : self.coefficientTrainee}
+        self.dico = {'masseTotale' : self.masseTotale, 'CoeffTrainee' : self.coefficientTrainee}
 
     def __update_puissance__(self): 
-        self.puissance = puissanceNecessaire(self.dico)
+        self.puissance = puissance_necessaire(self.dico)
 
     def __update_moteur_ess__(self) : 
         if self.modele == 'ICEV' :
-            moteur1 = {'Nom' : "MoteurThermique", 'Puissance': self.puissance }
-            moteur2 = {'Nom' : "None"}
-            ess1 = {'Nom' : "ReservoirEssence"}
-            ess2 = {'Nom' : "None"}
+            self.moteur1 = {'Nom' : "MoteurThermique", 'Puissance': self.puissance }
+            self.moteur2 = {'Nom' : "None"}
+            self.ess1 = {'Nom' : "ReservoirEssence"}
+            self.ess2 = {'Nom' : "None"}
         elif self.modele == 'HEV' :
-            moteur1 = {'Nom' : "MoteurThermique", 'Puissance' : self.puissance}
-            moteur2 = {'Nom' : "MoteurElectrique", 'Puissance' : DictionnaireVoiture.get(motorisation).get('puissanceElectrique')}
-            ess1 = {'Nom' : "ReservoirEssence"}
-            ess2 = {'Nom' : "Batterie" , 'Capacite' : int(self.distQuot/25)+1, 'Pack' : False} #En considérant que 5Km ~= 1 kWh et que le freinage régénératif autour de 20% d'éco, soit 1/5 encore
+            self.moteur1 = {'Nom' : "MoteurThermique", 'Puissance' : self.puissance}
+            self.moteur2 = {'Nom' : "MoteurElectrique", 'Puissance' : DictionnaireVoiture.get(self.motorisation).get('puissanceElectrique')}
+            self.ess1 = {'Nom' : "ReservoirEssence"}
+            self.ess2 = {'Nom' : "Batterie" , 'Capacite' : int(self.distQuot/25)+1, 'Pack' : False} #En considérant que 5Km ~= 1 kWh et que le freinage régénératif autour de 20% d'éco, soit 1/5 encore
         elif self.modele == 'PHEV' :
             ratio = self.puissance/110
-            puissance1, puissance2 = ratio*dimensionnementPHEV(self.distQuot)
-            moteur1 = {'Nom' : "MoteurThermique", 'Puissance' : puissance1}
-            moteur2 = {'Nom' : "MoteurElectrique", 'Puissance' : self.puissance}
-            ess1 = {'Nom' : "ReservoirEssence"}
-            ess2 = {'Nom' : "Batterie", 'Capacite' : 1.5*self.distQuot/5, 'Pack':True}
+            puissance1, puissance2 = dimensionnementPHEV(self.distQuot)
+            self.moteur1 = {'Nom' : "MoteurThermique", 'Puissance' : puissance1*ratio}
+            self.moteur2 = {'Nom' : "MoteurElectrique", 'Puissance' : self.puissance}
+            self.ess1 = {'Nom' : "ReservoirEssence"}
+            self.ess2 = {'Nom' : "Batterie", 'Capacite' : 1.5*self.distQuot/5, 'Pack':True}
         elif self.modele == "BEV" :
-	        capacite = autonomie("BEV", self.drivingCycle)*0.2
-	        moteur1 = {'Nom' : "MoteurElectrique", 'Puissance' : self.puissance}
-	        moteur2 = {'Nom' : "None"}
-	        ess1 = {'Nom' : "Batterie", 'Capacite' : capacite, 'Pack' : True}
-	        ess2 = {'Nom' : "None"}
+	        capacite = autonomie("BEV", self.drivingCycle, self.distQuot)*0.2
+	        self.moteur1 = {'Nom' : "MoteurElectrique", 'Puissance' : self.puissance}
+	        self.moteur2 = {'Nom' : "None"}
+	        self.ess1 = {'Nom' : "Batterie", 'Capacite' : capacite, 'Pack' : True}
+	        self.ess2 = {'Nom' : "None"}
         elif self.modele == "FCEV" :
-            reservoir = autonomie("FCEV", self.drivingCycle)/100
-            moteur1 = {'Nom' : "MoteurElectrique", 'Puissance' : self.puissance }
-            moteur2 = {'Nom' : "None" }
-            ess1 = {'Nom' : "PileCombustible", 'Puissance' : self.puissance, 'Reservoir' : reservoir }
-            ess2 = {'Nom' : "Batterie", 'Capacite' : dimensionnementFCEV(self.puissance, self.masseTotale), 'Pack' : True }
+            reservoir = autonomie("FCEV", self.drivingCycle, self.distQuot)/100
+            self.moteur1 = {'Nom' : "MoteurElectrique", 'Puissance' : self.puissance }
+            self.moteur2 = {'Nom' : "None" }
+            self.ess1 = {'Nom' : "PileCombustible", 'Puissance' : self.puissance, 'Reservoir' : reservoir }
+            self.ess2 = {'Nom' : "Batterie", 'Capacite' : dimensionnementFCEV(self.puissance, self.masseTotale), 'Pack' : True }
         
     def __update_masseTotale__(self) : 
         poidsESS = 0
-        poidsInitial = self.masseTotale
-        for ess in [self.ess1, self.ess2]:
-            if ess.get('Nom') == "Batterie" :
-                poidsInitial -= masseBatterie(DictionnaireVoiture.get(self.motorisation).get('batterie'))
-                poidsESS += masseBatterie(ess.get('Capacite'))
-            elif ess.get('Nom') == "PileCombustible" :
-                poidsInitial -= DictionnaireVoiture.get(self.motorisation).get('reservoir')* 20       #en mettant dans le dico la quanité d'hydrogène stockée dans réservoir
-                poidsESS += ess.get('Reservoir')*20 #20kg de réservoir pour 1 kg de H2
-                poidsESS += massePAC(ess.get('Puissance') - DictionnaireVoiture.get(self.motorisation).get('puissanceThermique'))       
-        for mot in [self.moteur1, self.moteur2] :
-            if mot.get('Nom') == "MoteurThermique" :
-                poidsESS -= masseMoteurThermique(DictionnaireVoiture.get(self.motorisation).get('puissanceThermique'))
-                poidsESS += masseMoteurThermique(mot.get('Puissance'))
-            if mot.get('Nom') == "MoteurElectrique":
-                poidsESS -= masseMoteurElectrique(DictionnaireVoiture.get(self.motorisation).get('puissanceElectrique'))
-                poidsESS += masseMoteurElectrique(mot.get('Puissance'))
-        self.masseTotale = poidsInitial + poidsESS
+        poidsInitial = DictionnaireVoiture.get(self.motorisation).get('masseTotale')
+        if self.modele == 'ICEV':
+            poidsESS -= masseMoteurThermique(DictionnaireVoiture.get(self.motorisation).get(' puissanceThermique'))
+            poidsESS += masseMoteurThermique(self.moteur1.get('Puissance'))
+        elif self.modele == 'HEV' or self.modele == 'PHEV':
+            poidsESS -=  masseMoteurThermique(DictionnaireVoiture.get(self.motorisation).get(' puissanceThermique'))
+            poidsESS += masseMoteurThermique(self.moteur1.get('Puissance'))
+            poidsESS -= masseBatterie(DictionnaireVoiture.get(self.motorisation).get('batterie'))
+            poidsESS += masseBatterie(self.ess2.get('Capacite'))
+        elif self.modele == 'BEV':
+            poidsESS -= masseBatterie(DictionnaireVoiture.get(self.motorisation).get('batterie'))
+            poidsESS += masseBatterie(self.ess1.get('Capacite'))
+        elif self.modele == 'FCEV':
+            poidsESS -= masseBatterie(DictionnaireVoiture.get(self.motorisation).get('batterie'))
+            poidsESS += masseBatterie(self.ess2.get('Capacite'))
+            poidsESS -= DictionnaireVoiture.get(self.motorisation).get('reservoir')* 20
+            poidsESS += self.ess1.get('Reservoir')*20 #20kg de réservoir pour 1 kg de H2
+            poidsESS += massePAC(self.ess1.get('Puissance') - DictionnaireVoiture.get(self.motorisation).get(' puissanceThermique')) 
+        self.masseTotale = poidsInitial - poidsESS 
 
     def __update_NRJ__(self):
         if self.modele == 'ICEV':
@@ -321,44 +325,37 @@ class Voitures :
             self.consommationNRJ = consoFCPHE(self.dico, self.drivingCycle) # en [kgH2/100km, kWh/100km]
         
     #--------Partie Environnementale--------   
-    """
-    def __update_emissionConception__(self) : # A DEFINIR !
-        if modele == 'ICEV':
-            data =  
-        elif modele == 'HEV':
-            data =  
-        elif modele == 'PHEV':
-            data =  
-        elif modele == 'BEV':
-            data =  
-        elif modele == 'FCEV':
-            data = 4
-        self.emissionEntretien = data*self.kilometrage/100
-
-    def __update_emissionEntretien__(self): # A DEFINIR !
-        if modele == 'ICEV':
-            data =  
-        elif modele == 'HEV':
-            data =  
-        elif modele == 'PHEV':
-            data =  
-        elif modele == 'BEV':
-            data =  
-        elif modele == 'FCEV':
-            data = 0.85 
-        self.emissionEntretien = data*self.kilometrage/100
-    """
+    
+    def __update_emissionConception__(self) :
+        data = 0
+        if self.modele == 'ICEV':
+            data += 14.6 #valeur émission de toute la conception à mettre en kgC02/100km
+        elif self.modele == 'HEV':
+            data += 12.18 #valeur émission de toute la conception sauf batterie
+            data += 70 * self.ess2.get('Capacite')/1500
+        elif self.modele == 'PHEV':
+            data += 5.08 #valeur émission de toute la conception sauf batterie
+            data += 70 * self.ess2.get('Capacite')/1500
+        elif self.modele == 'BEV':
+            data += 9.25 #valeur émission de toute la conception sauf batterie
+            data += 70 * self.ess1.get('Capacite')/1500
+        elif self.modele == 'FCEV':
+            data += 26.92 #valeur émission de toute la conception sauf PAC et reservoir hydrogene
+            data += 3.1 * self.ess1.get('Reservoir')/5 + 0.9
+            data += 70 * self.ess2.get('Capacite')/1500
+        self.emissionConception = data*self.kilometrage/100
+ 
     def __update_emissionUtilisation__(self) :   
         if self.modele == 'ICEV' or self.modele == 'HEV' :
-            self.coutUtilisation = self.kilometrage/100*self.consommationNRJ*emissionEssence
+            self.emissionUtilisation = self.kilometrage/100*self.consommationNRJ*emissionEssence
         elif self.modele == 'PHEV' :
-            self.coutUtilisation = self.kilometrage/100*(self.consommationNRJ[0]*emissionEssence+ self.consommationNRJ[1]*emissionElectricite)
+            self.emissionUtilisation = self.kilometrage/100*(self.consommationNRJ[0]*emissionEssence+ self.consommationNRJ[1]*emissionElectricite)
         elif self.modele == 'BEV':
-            self.coutUtilisation = self.kilometrage/100*self.consommationNRJ*emissionElectricite
+            self.emissionUtilisation = self.kilometrage/100*self.consommationNRJ*emissionElectricite
         elif self.modele == 'FCEV' :
-            self.coutUtilisation = self.kilometrage/100*self.consommationNRJ*emissionHydrogene
+            self.emissionUtilisation = self.kilometrage/100*self.consommationNRJ*emissionHydrogene
         elif self.modele == 'FCPHE' :
-            self.coutUtilisation = self.kilometrage/100*(self.consommationNRJ[0]*emissionHydrogene+ self.consommationNRJ[1]*emissionElectricite)
+            self.emissionUtilisation = self.kilometrage/100*(self.consommationNRJ[0]*emissionHydrogene+ self.consommationNRJ[1]*emissionElectricite)
 
     def __update_emissionRecyclage__(self) :
         if self.moteur1.get('Nom') == "MoteurElectrique" :
@@ -371,7 +368,7 @@ class Voitures :
     #--------Partie Economique--------
 
     def __update_PrixAchat__(self):
-        coutCarrosserie = DictionnaireVoiture.get(self.taille[0]+'-'+'ICEV').get('prix')
+        coutCarrosserie = DictionnaireVoiture.get(self.taille[0]+'-'+'ICEV').get('prixCarrosserie')
         coutESS1 = calculCoutESS(self.ess1)
         coutESS2 = calculCoutESS(self.ess2)
         coutMoteur1 = calculCoutMoteur(self.moteur1)
@@ -386,7 +383,7 @@ class Voitures :
         Attributs nécessaires : prixAchat, emmissionCO2km, occasion, conversion, puissance, modele
         """
         prix = self.prixAchat
-        emissionUnit = self.emissionCO2km*10
+        emissionUnit = int(self.emissionUtilisation*1000/self.kilometrage)
         # Calcul du malus CO2 :
         if emissionUnit <= 109 :
             malusCO2 = MalusCO2.get(109)
@@ -398,9 +395,10 @@ class Voitures :
         # Calcul du malus annuel, à multiplier par le nombre d'années d'utilisation
         malusAnnuel = 0
         if emissionUnit > 190 :
-            malusAnnuel = 160
+            malusAnnuel = 160*self.nombreAnnees
 
         # Calcul du malus d'occasion
+        malusOccasion = 0
         if self.occasion :
             chevauxFiscaux = int(emissionUnit/45 +self.puissance/40*1.6)
             if 9 < chevaux < 16 :
@@ -413,7 +411,7 @@ class Voitures :
         # Calcul des primes :
         primeConversion = 0
         if self.conversion :
-            primeConversion = 2000 #euros
+            primeConversion = -2000 #euros
 
         # Bonus écologique (négatif) :
         bonusEcologique = 0
@@ -426,7 +424,7 @@ class Voitures :
             if prix >= 60000 :
                 bonusEcologique = -3000
         elif self.modele == 'HEV' or self.modele == 'PHEV' :
-            if self.emissionUnit <50 : 
+            if emissionUnit <50 : 
                 bonusEcologique = -2000
 
         self.coutBonusMalus = malusCO2 + malusAnnuel +  malusOccasion + primeConversion + bonusEcologique
@@ -461,30 +459,47 @@ class Voitures :
             self.coutUtilisation = self.kilometrage/100*(self.consommationNRJ[0]*prixPompeHydro+ self.consommationNRJ[1]*self.prixPompeElec)
 
     def __update_TCO__(self) :
-        self.TCO = self.prixAchat + self.coutBonusMalus + self.coutEntretienTotal + self.coutUtilisation
-        self.emissionTotale = self.emissionUtilisation + self.emissionConception + self.emissionEntretien + self.emissionRecyclage #définir la bonne untié !
+        self.TCO = int(self.prixAchat + self.coutBonusMalus + self.coutEntretienTotal + self.coutUtilisation)
+        self.emissionTotale = int(self.emissionUtilisation + self.emissionConception + self.emissionRecyclage )
 
     #--------Partie Finale--------
 
     def __MAJ__(self):
+        print('motorisation : ', self.motorisation)
         self.__update_automatique__()
+        print('kilometrage : ', self.kilometrage)
+        print('masse totale : ', self.masseTotale)
+        print('coefficient de trainee : ', self.coefficientTrainee)
         self.__update_dico__()
+        print('dictionnaire : ' ,self.dico)
         self.__update_puissance__()
+        print('puissance : ', self.puissance)
         self.__update_moteur_ess__()
         self.__update_masseTotale__()
+        print('masse totale : ', self.masseTotale)
         self.__update_dico__()
+        print('dico : ', self.dico)
         self.__update_NRJ__()
+        print('Consommation energie : ', self.consommationNRJ)
         #Partie Ecologique
         self.__update_emissionConception__()
-        self.__update_emissionEntretien__()
+        print('Emission de conception : ', self.emissionConception)
         self.__update_emissionUtilisation__()
+        print('Emission utilisation : ', self.emissionUtilisation)
         self.__update_emissionRecyclage__()
+        print('Emission recyclage : ', self.emissionRecyclage)
         # Partie Economique
         self.__update_PrixAchat__()
+        print('prix achat : ', self.prixAchat)
         self.__update_coutBonusMalus__()
+        print('bonus et malus : ', self.coutBonusMalus)
         self.__update_coutEntretienTotal__()
+        print('cout entretien total : ', self.coutEntretienTotal)
         self.__update_coutUtilisation__()
+        print('Cout utilisation : ', self.coutUtilisation)
         self.__update_TCO__()
+        print('TCO : ', self.TCO)
+        print('Emission Totale : ', self.emissionTotale)
         
 
 #==================================
@@ -492,12 +507,11 @@ class Voitures :
 #================================== 
 
 def creationVoiture(Voitures) :
-    Voitures.__MAJ__
+    Voitures.__MAJ__()
     Voiture = {'coutBonusMalus' : Voitures.coutBonusMalus, 'coutEntretien' : Voitures.coutEntretienTotal, 
     'coutUtilisation' : Voitures.coutUtilisation, 'prixAchat' : Voitures.prixAchat, 'TCO' : Voitures.TCO, 
     'emissionUtilisation' : Voitures.emissionUtilisation, 'emissionRecyclage' : Voitures.emissionRecyclage,
-    'emissionConception' : Voitures.emissionConception, 'emissionEntretien' : Voitures.emissionEntretien,
-    'emissionTotale' : Voitures.emissionTotale}
+    'emissionConception' : Voitures.emissionConception, 'emissionTotale' : Voitures.emissionTotale}
     return Voiture
 
 def creationListe(param):
@@ -516,24 +530,34 @@ def creationListe(param):
     for i in ListeModele:
         param['modele']=i
         voiture = Voitures(param)
-        ListeVoiture.append(creationVoiture)
+        ListeVoiture += [creationVoiture(voiture)]
     return ListeVoiture, ListeModele 
 
 def update(L1, L2):
     l = len(L1)
     L3 = []
     for i in range(l):
-        L3 += [max(0,L1[i])+L2[i]]
+        L3 += [ max(0,L1[i])+L2[i] ]
     return L3
 
 def representation(ListeVoiture, ListeModele): 
-    ycoutBonus = [i.get('coutBonus') for i in ListeVoiture]
-    ycoutAchat = [i.get('coutAchat') for i in ListeVoiture]
+    fig, ax1 = plt.subplots()
+    def autolabel(rects, ax):
+        """Affiche la valeur finale au dessus du graphique"""
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate('{}'.format(height),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 3),  # 3 points vertical offset
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+            
+    ycoutBonus = [i.get('coutBonusMalus') for i in ListeVoiture]
+    ycoutAchat = [i.get('prixAchat') for i in ListeVoiture]
     ycoutEntretien = [i.get('coutEntretien') for i in ListeVoiture]
     ycoutUtilisation = [i.get('coutUtilisation') for i in ListeVoiture]
     xemissionRecyclage = [i.get('emissionRecyclage') for i in ListeVoiture]
     xemissionConception = [i.get('emissionConception') for i in ListeVoiture]
-    xemissionEntretien = [i.get('emissionEntretien') for i in ListeVoiture]
     xemissionUtilisation = [i.get('emissionUtilisation') for i in ListeVoiture]
     TCO = [i.get('TCO') for i in ListeVoiture]
     emissionTotale = [i.get('emissionTotale') for i in ListeVoiture]
@@ -542,33 +566,51 @@ def representation(ListeVoiture, ListeModele):
     Li2 = update(Li1, ycoutAchat)
     Li3 = update(Li2, ycoutEntretien)
     Lj1 = update(xemissionRecyclage, [0 for i in range(len(ListeVoiture))])
-    Lj2 = update(Lj1,xemissionConception)
-    Lj3 = update(Lj2, xemissionEntretien) 
+    Lj2 = update(Lj1,xemissionConception) 
 
-    barWidth = 0.3
+    barWidth = 0.2
+    barWidth2 = 0.1
+    e = 0.75
     r = len(ListeVoiture) # Nombre de groupe de colonnes
-    r1 = range(r) #placement des colonnes cout
-    r2 = [x + 0.5 for x in r1] #placement des colonnes emission
-    r0 = [x + 0.25 for x in r1] # placement des colonnes TCO final
-    Gender = ["TCO final", "Bonus-Malus", "Cout à l'achat", "Cout d'entretien", "Cout d'utilisation", "Recyclage", "Emission de conception", "Emision d'entretien", "Emission à l'utilisation"]
+    R = range(r)
+    r1 = [x + barWidth for x in R] # placement des colonnes couts
+    r2 = [x + 0.45 for x in r1] # placement des colonnes emission
+    r0 = [x + 0.2 for x in r1] # placement des colonnes TCO final
+    r3 = [x + 0.65 for x in r1] # placement des colonnes Emissions Totales
+    r4 = [x + 0.075 for x in r0]
+    """Gender = ["Bonus-Malus", "Cout à l'achat", "Cout d'entretien", "Cout d'utilisation",
+              "Recyclage", "Emission de conception/entretien", "Emission à l'utilisation", "TCO", "Emissions Totales"]"""
+    GenderCout = ["Bonus-Malus", "Cout à l'achat", "Cout d'entretien", "Cout d'utilisation","TCO"]
+    GenderCO2 = ["Recyclage", "Emission de conception/entretien", "Emission à l'utilisation", "Emissions Totales"]
 
-    plt.bar(r0, TCO, width = 0.1, color = 'darkslategrey', edgecolor = 'black', hatch = '/')
-    plt.bar(r1, ycoutBonus, width = barWidth, color = 'chartreuse', edgecolor ='black')
-    plt.bar(r1, ycoutAchat, width = barWidth, color = 'dodgerblue', edgecolor ='black', bottom=Li1)
-    plt.bar(r1, ycoutEntretien, width = barWidth, color = 'crimson', edgecolor ='black', tick_label = 'Entretien', bottom=Li2)
-    plt.bar(r1, ycoutUtilisation, width = barWidth, color = 'gold', edgecolor ='black', tick_label = 'Utilisation', bottom=Li3)
-    plt.bar(r2, xemissionRecyclage, width = barWidth, color = 'lightgrey', edgecolor = 'black')
-    plt.bar(r2, xemissionConception, width = barWidth, color = 'lightgrey', edgecolor = 'black', bottom = Lj1)
-    plt.bar(r2, xemissionEntretien, width = barWidth, color = 'grey', edgecolor = 'black', bottom = Lj2)
-    plt.bar(r2, xemissionUtilisation, width = barWidth, color = 'dimgray', edgecolor = 'black', bottom = Lj3)
-
-    plt.xlabel('Modèles de voiture', fontsize = 15)
-    plt.ylabel('TCO (€) _ Emission de Co2 (kg)', fontsize = 12)
-    plt.title('TCO et émission de CO2 pour chaque véhicule')
-    plt.xticks(r1, ListeModele)
-    plt.legend(Gender)
+    plt.axis([0, r, -10000, max(TCO)+10000])     
+    plt.bar(r1, ycoutBonus, width = barWidth, color = 'lime', edgecolor ='black', linewidth = e)
+    plt.bar(r1, ycoutAchat, width = barWidth, color = 'yellow', edgecolor ='black', linewidth = e, bottom=Li1)
+    plt.bar(r1, ycoutEntretien, width = barWidth, color = 'blue', edgecolor ='black', tick_label = 'Entretien',linewidth = e, bottom=Li2)
+    plt.bar(r1, ycoutUtilisation, width = barWidth, color = 'red', edgecolor ='black', tick_label = 'Utilisation',linewidth = e, bottom=Li3)
+    tco = plt.bar(r0, TCO, width = barWidth2, color = 'navy', edgecolor = 'black',linewidth = e, hatch = '/')
+    autolabel(tco, ax1)
+    plt.legend(GenderCout, loc = 'upper left', prop = {'size' : 7}, ncol = 3)
+    plt.ylabel('TCO (€)', fontsize = 15)
+    plt.gca().yaxis.set_tick_params(labelsize = 7)
+    
+    ax2 = plt.gca().twinx()
+    plt.axis([0, r, -5000, max(emissionTotale)+10000])
+    plt.bar(r2, xemissionRecyclage, width = barWidth, color = 'whitesmoke', edgecolor = 'black', linewidth = e)
+    plt.bar(r2, xemissionConception, width = barWidth, color = 'silver', edgecolor = 'black', linewidth = e, bottom = Lj1)
+    plt.bar(r2, xemissionUtilisation, width = barWidth, color = 'gray', edgecolor = 'black', linewidth = e, bottom = Lj2)
+    et = plt.bar(r3, emissionTotale, width = barWidth2, color = 'darkgray', edgecolor = 'black', linewidth = e, hatch = '/')
+    autolabel(et, ax2)
+    plt.legend(GenderCO2, loc = 'upper right', prop = {'size' : 7}, ncol = 2)
+    plt.ylabel('Emission de C02 (kg)', fontsize = 15)
+    plt.gca().yaxis.set_tick_params(labelsize = 7)
+    
+    plt.xlabel('Modèles de voiture', fontsize = 15)    
+    plt.title('TCO et émissions de CO2 sur la vie des véhicules', fontsize = 18)
+    plt.xticks(r4, ListeModele)
+    plt.tick_params(axis = 'x', length = 3)
+    fig.tight_layout()
     plt.show()
-    # Rajouter une deuxième légende pour le CO2
 
 def TestFinal(param):
     ListeVoiture, ListeModele = creationListe(param)
@@ -578,15 +620,15 @@ def TestFinal(param):
 #===============
 #     Tests
 #===============
-"""
-DrivingCycle = urbain               # variable parmi urbain, periurbain, autoroute, rural (sans guillemets !)
-Conversion = True                   # boolean : True si conversion thermique à électrique/hybride, False sinon
+
+DrivingCycle = rural           # variable parmi urbain, periurbain, autoroute, rural (sans guillemets !)
+Conversion = False                   # boolean : True si conversion thermique à électrique/hybride, False sinon
 Occasion = False                    # boolean : True si achat véhicule d'occasion, False sinon                   
-DistanceQuotienne = 40              # km pour faire l'aller retour boulot-maison
-Frequence = 6                       # Fréquence à la semaine : nombre de journées
-Taille = 'petite'                   # Taille du véhicule, parmi {'petite', 'berline', 'citadine', 'dcompacte', 'familiale'} (le d devant compacte est voulu, pour avoir un indice différent)
-parametre = {'drivingCyle' : DrivingCycle, 'conversion' : Conversion, 'occasion' : Occasion, 'distQuot' : DistanceQuotienne , 'frequence' : Frequence, 'taille' : Taille}
+DistanceQuotienne = 60              # km pour faire l'aller retour boulot-maison
+Frequence = 5                       # Fréquence à la semaine : nombre de journées
+Taille = 'berline'                   # Taille du véhicule, parmi {'petite', 'berline', 'citadine', 'dcompacte', 'familiale'} (le d devant compacte est voulu, pour avoir un indice différent)
+parametre = {'drivingCycle' : DrivingCycle, 'conversion' : Conversion, 'occasion' : Occasion, 'distQuot' : DistanceQuotienne , 'frequence' : Frequence, 'taille' : Taille}
 TestFinal(parametre)
-"""
+
 
 
