@@ -4,9 +4,6 @@ import matplotlib.pyplot as plt
 from ConsoPuissance import * 
 from drivetrain_fast import *
 
-# Ajouter l'abonnement electricite
-
-
 #=============================
 #     Constantes globales 
 #============================= 
@@ -54,7 +51,7 @@ def prixPompeElec(usage):
         temps = 10 #en heures
         return prix
     elif usage == urbain:
-        abonnement = 15 #euros
+        abonnement = 15 #euros, totalement marginal
         prix = 0.25 #Prix moyen (mais on peut descendre a 0)
         temps = 5
         return prix
@@ -215,7 +212,7 @@ class Voitures :
         #   Attributs intermédiaires
         #==============================
         self.kilometrageAnnuel = param.get('distQuot')*param.get('frequence')*52
-        self.nombreAnnees = min(8, 150000/(param.get('distQuot')*param.get('frequence')*52))
+        self.nombreAnnees = min(10, 150000/(param.get('distQuot')*param.get('frequence')*52))
         self.motorisation = param.get('taille')[0]+'-'+param.get('modele')
         self.prixPompeElec = prixPompeElec(param.get('drivingCycle'))
         self.kilometrage = 0 #distance totale parcourue sur toute la vie du véhicule
@@ -328,21 +325,22 @@ class Voitures :
     
     def __update_emissionConception__(self) :
         data = 0
+        mix = 150
         if self.modele == 'ICEV':
-            data += 14.6 #valeur émission de toute la conception à mettre en kgC02/100km
+            data += 12.1 #valeur émission de toute la conception à mettre en kgC02/100km
         elif self.modele == 'HEV':
-            data += 12.18 #valeur émission de toute la conception sauf batterie
-            data += 70 * self.ess2.get('Capacite')/1500
+            data += 10.9 #valeur émission de toute la conception sauf batterie
+            data += mix * self.ess2.get('Capacite')/1500
         elif self.modele == 'PHEV':
-            data += 5.08 #valeur émission de toute la conception sauf batterie
-            data += 70 * self.ess2.get('Capacite')/1500
+            data += 12.1 #valeur émission de toute la conception sauf batterie
+            data += mix * self.ess2.get('Capacite')/1500
         elif self.modele == 'BEV':
-            data += 9.25 #valeur émission de toute la conception sauf batterie
-            data += 70 * self.ess1.get('Capacite')/1500
+            data += 7.8 #valeur émission de toute la conception sauf batterie
+            data += mix * self.ess1.get('Capacite')/1500
         elif self.modele == 'FCEV':
-            data += 26.92 #valeur émission de toute la conception sauf PAC et reservoir hydrogene
+            data += 8.1 #valeur émission de toute la conception sauf PAC et reservoir hydrogene
             data += 3.1 * self.ess1.get('Reservoir')/5 + 0.9
-            data += 70 * self.ess2.get('Capacite')/1500
+            data += mix * self.ess2.get('Capacite')/1500
         self.emissionConception = data*self.kilometrage/100
  
     def __update_emissionUtilisation__(self) :   
@@ -385,6 +383,11 @@ class Voitures :
         prix = self.prixAchat
         emissionUnit = int(self.emissionUtilisation*1000/self.kilometrage)
         # Calcul du malus CO2 :
+        malusCO2 = 0
+        if self.modele == 'PHEV':
+            emissionUnit = self.consommationNRJ[0]*emissionEssence*10
+        elif self.modele == 'BEV' or self.modele == 'FCEV' :
+            emissionUnit = 0
         if emissionUnit <= 109 :
             malusCO2 = MalusCO2.get(109)
         elif emissionUnit >= 173 :
@@ -411,7 +414,8 @@ class Voitures :
         # Calcul des primes :
         primeConversion = 0
         if self.conversion :
-            primeConversion = -2000 #euros
+            if self.modele == 'BEV' or self.modele == 'FCEV' or (self.modele == 'PHEV' and emissionUnit <=50) :
+                primeConversion = -2000 #euros
 
         # Bonus écologique (négatif) :
         bonusEcologique = 0
@@ -465,42 +469,44 @@ class Voitures :
     #--------Partie Finale--------
 
     def __MAJ__(self):
-        print('motorisation : ', self.motorisation)
         self.__update_automatique__()
-        print('kilometrage : ', self.kilometrage)
-        print('masse totale : ', self.masseTotale)
-        print('coefficient de trainee : ', self.coefficientTrainee)
         self.__update_dico__()
-        print('dictionnaire : ' ,self.dico)
         self.__update_puissance__()
-        print('puissance : ', self.puissance)
         self.__update_moteur_ess__()
         self.__update_masseTotale__()
-        print('masse totale : ', self.masseTotale)
         self.__update_dico__()
-        print('dico : ', self.dico)
         self.__update_NRJ__()
-        print('Consommation energie : ', self.consommationNRJ)
         #Partie Ecologique
         self.__update_emissionConception__()
-        print('Emission de conception : ', self.emissionConception)
         self.__update_emissionUtilisation__()
-        print('Emission utilisation : ', self.emissionUtilisation)
         self.__update_emissionRecyclage__()
-        print('Emission recyclage : ', self.emissionRecyclage)
         # Partie Economique
         self.__update_PrixAchat__()
-        print('prix achat : ', self.prixAchat)
         self.__update_coutBonusMalus__()
-        print('bonus et malus : ', self.coutBonusMalus)
         self.__update_coutEntretienTotal__()
-        print('cout entretien total : ', self.coutEntretienTotal)
         self.__update_coutUtilisation__()
-        print('Cout utilisation : ', self.coutUtilisation)
         self.__update_TCO__()
-        print('TCO : ', self.TCO)
-        print('Emission Totale : ', self.emissionTotale)
-        
+        if False :
+            print('motorisation : ', self.motorisation)
+            print('kilometrage : ', self.kilometrage)
+            print('masse totale : ', self.masseTotale)
+            print('coefficient de trainee : ', self.coefficientTrainee)
+            print('puissance : ', self.puissance)
+            print('moteur 1 : ', self.moteur1)
+            print('moteur 2 : ', self.moteur2)
+            print('ess 1 : ', self.ess1)
+            print('ess 2 : ', self.ess2)
+            print('Consommation energie : ', self.consommationNRJ)
+            print('Emission de conception : ', self.emissionConception)
+            print('Emission utilisation : ', self.emissionUtilisation)
+            print('Emission recyclage : ', self.emissionRecyclage)
+            print('prix achat : ', self.prixAchat)
+            print('bonus et malus : ', self.coutBonusMalus)
+            print('cout entretien total : ', self.coutEntretienTotal)
+            print('Cout utilisation : ', self.coutUtilisation)
+            print('TCO : ', self.TCO)
+            print('Emission Totale : ', self.emissionTotale)
+
 
 #==================================
 #     Représentation graphique
@@ -624,9 +630,9 @@ def TestFinal(param):
 DrivingCycle = rural           # variable parmi urbain, periurbain, autoroute, rural (sans guillemets !)
 Conversion = False                   # boolean : True si conversion thermique à électrique/hybride, False sinon
 Occasion = False                    # boolean : True si achat véhicule d'occasion, False sinon                   
-DistanceQuotienne = 60              # km pour faire l'aller retour boulot-maison
-Frequence = 5                       # Fréquence à la semaine : nombre de journées
-Taille = 'berline'                   # Taille du véhicule, parmi {'petite', 'berline', 'citadine', 'dcompacte', 'familiale'} (le d devant compacte est voulu, pour avoir un indice différent)
+DistanceQuotienne = 75              # km pour faire l'aller retour boulot-maison
+Frequence = 4                       # Fréquence à la semaine : nombre de journées
+Taille = 'dcompacte'                   # Taille du véhicule, parmi {'petite', 'berline', 'citadine', 'dcompacte', 'familiale'} (le d devant compacte est voulu, pour avoir un indice différent)
 parametre = {'drivingCycle' : DrivingCycle, 'conversion' : Conversion, 'occasion' : Occasion, 'distQuot' : DistanceQuotienne , 'frequence' : Frequence, 'taille' : Taille}
 TestFinal(parametre)
 
