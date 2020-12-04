@@ -485,8 +485,17 @@ class Voitures :
         self.__update_coutBonusMalus__()
         self.__update_coutEntretienTotal__()
         self.__update_coutUtilisation__()
+        # Ramener tout sur 1 année :
+        self.emissionConception /= self.nombreAnnees
+        self.emissionUtilisation /= self.nombreAnnees
+        self.emissionRecyclage /= self.nombreAnnees
+        self.prixAchat /= self.nombreAnnees
+        self.coutBonusMalus /= self.nombreAnnees
+        self.coutEntretienTotal /= self.nombreAnnees
+        self.coutUtilisation /= self.nombreAnnees
         self.__update_TCO__()
-        if False :
+        if True :
+            print('Données du véhicule : ')
             print('motorisation : ', self.motorisation)
             print('kilometrage : ', self.kilometrage)
             print('masse totale : ', self.masseTotale)
@@ -506,6 +515,7 @@ class Voitures :
             print('Cout utilisation : ', self.coutUtilisation)
             print('TCO : ', self.TCO)
             print('Emission Totale : ', self.emissionTotale)
+            print('=========================================================')
 
 
 #==================================
@@ -584,12 +594,11 @@ def representation(ListeVoiture, ListeModele):
     r0 = [x + 0.2 for x in r1] # placement des colonnes TCO final
     r3 = [x + 0.65 for x in r1] # placement des colonnes Emissions Totales
     r4 = [x + 0.075 for x in r0]
-    """Gender = ["Bonus-Malus", "Cout à l'achat", "Cout d'entretien", "Cout d'utilisation",
-              "Recyclage", "Emission de conception/entretien", "Emission à l'utilisation", "TCO", "Emissions Totales"]"""
+
     GenderCout = ["Bonus-Malus", "Cout à l'achat", "Cout d'entretien", "Cout d'utilisation","TCO"]
     GenderCO2 = ["Recyclage", "Emission de conception/entretien", "Emission à l'utilisation", "Emissions Totales"]
 
-    plt.axis([0, r, -10000, max(TCO)+10000])     
+    plt.axis([0, r, -5000, max(max(TCO), max(emissionTotale))+5000])     
     plt.bar(r1, ycoutBonus, width = barWidth, color = 'lime', edgecolor ='black', linewidth = e)
     plt.bar(r1, ycoutAchat, width = barWidth, color = 'yellow', edgecolor ='black', linewidth = e, bottom=Li1)
     plt.bar(r1, ycoutEntretien, width = barWidth, color = 'blue', edgecolor ='black', tick_label = 'Entretien',linewidth = e, bottom=Li2)
@@ -597,22 +606,22 @@ def representation(ListeVoiture, ListeModele):
     tco = plt.bar(r0, TCO, width = barWidth2, color = 'navy', edgecolor = 'black',linewidth = e, hatch = '/')
     autolabel(tco, ax1)
     plt.legend(GenderCout, loc = 'upper left', prop = {'size' : 7}, ncol = 3)
-    plt.ylabel('TCO (€)', fontsize = 15)
+    plt.ylabel('TCO (€/an)', fontsize = 15)
     plt.gca().yaxis.set_tick_params(labelsize = 7)
     
     ax2 = plt.gca().twinx()
-    plt.axis([0, r, -5000, max(emissionTotale)+10000])
+    plt.axis([0, r, -5000, max(max(TCO), max(emissionTotale))+5000]) 
     plt.bar(r2, xemissionRecyclage, width = barWidth, color = 'whitesmoke', edgecolor = 'black', linewidth = e)
     plt.bar(r2, xemissionConception, width = barWidth, color = 'silver', edgecolor = 'black', linewidth = e, bottom = Lj1)
     plt.bar(r2, xemissionUtilisation, width = barWidth, color = 'gray', edgecolor = 'black', linewidth = e, bottom = Lj2)
     et = plt.bar(r3, emissionTotale, width = barWidth2, color = 'darkgray', edgecolor = 'black', linewidth = e, hatch = '/')
     autolabel(et, ax2)
     plt.legend(GenderCO2, loc = 'upper right', prop = {'size' : 7}, ncol = 2)
-    plt.ylabel('Emission de C02 (kg)', fontsize = 15)
+    plt.ylabel('Emission de C02 (kg/an)', fontsize = 15)
     plt.gca().yaxis.set_tick_params(labelsize = 7)
     
     plt.xlabel('Modèles de voiture', fontsize = 15)    
-    plt.title('TCO et émissions de CO2 sur la vie des véhicules', fontsize = 18)
+    plt.title("TCO et émissions de CO2 sur une année d'utilisation", fontsize = 18)
     plt.xticks(r4, ListeModele)
     plt.tick_params(axis = 'x', length = 3)
     fig.tight_layout()
@@ -621,20 +630,6 @@ def representation(ListeVoiture, ListeModele):
 def TestFinal(param):
     ListeVoiture, ListeModele = creationListe(param)
     representation(ListeVoiture, ListeModele)
-
-
-#===============
-#     Tests
-#===============
-
-DrivingCycle = rural           # variable parmi urbain, periurbain, autoroute, rural (sans guillemets !)
-Conversion = False                   # boolean : True si conversion thermique à électrique/hybride, False sinon
-Occasion = False                    # boolean : True si achat véhicule d'occasion, False sinon                   
-DistanceQuotienne = 75              # km pour faire l'aller retour boulot-maison
-Frequence = 4                       # Fréquence à la semaine : nombre de journées
-Taille = 'dcompacte'                   # Taille du véhicule, parmi {'petite', 'berline', 'citadine', 'dcompacte', 'familiale'} (le d devant compacte est voulu, pour avoir un indice différent)
-parametre = {'drivingCycle' : DrivingCycle, 'conversion' : Conversion, 'occasion' : Occasion, 'distQuot' : DistanceQuotienne , 'frequence' : Frequence, 'taille' : Taille}
-TestFinal(parametre)
 
 
 
