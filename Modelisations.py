@@ -49,4 +49,4 @@ modele_autoroute_familiale = {'drivingCycle' : DrivingCycle, 'conversion' : Conv
 Taille = 'dcompacte'
 modele_autoroute_compacte =  {'drivingCycle' : DrivingCycle, 'conversion' : Conversion, 'occasion' : Occasion, 'distQuot' : DistanceQuotienne , 'frequence' : Frequence, 'taille' : Taille}
  
-TestFinal(modele_rural_familiale)
+TestFinal(modele_periurbain_compacte)

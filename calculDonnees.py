@@ -496,8 +496,9 @@ class Voitures :
         self.__update_TCO__()
         if True :
             print('Données du véhicule : ')
+            print("Nombre d'années d'utilisation considérées : ", self.nombreAnnees)
+            print("Pour un kilometrage de : ", self.kilometrage)
             print('motorisation : ', self.motorisation)
-            print('kilometrage : ', self.kilometrage)
             print('masse totale : ', self.masseTotale)
             print('coefficient de trainee : ', self.coefficientTrainee)
             print('puissance : ', self.puissance)
