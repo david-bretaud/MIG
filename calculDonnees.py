@@ -357,11 +357,11 @@ class Voitures :
 
     def __update_emissionRecyclage__(self) :
         if self.moteur1.get('Nom') == "MoteurElectrique" :
-            self.emissionRecyclage = - 2700  #kg de CO2eq
+            self.emissionRecyclage = - 0  #kg de CO2eq
         elif self.moteur1.get('Nom') == "MoteurThermique" and self.moteur2.get('Nom') == "MoteurElectrique" :
-            self.emissionRecyclage = - 3000
+            self.emissionRecyclage = -0
         elif self.moteur1.get('Nom') == "MoteurThermique" and self.moteur2.get('Nom') == "None" :
-            self.emissionRecyclage = -3400
+            self.emissionRecyclage = -0
 
     #--------Partie Economique--------
 
@@ -597,7 +597,7 @@ def representation(ListeVoiture, ListeModele):
     r4 = [x + 0.075 for x in r0]
 
     GenderCout = ["Bonus-Malus", "Cout à l'achat", "Cout d'entretien", "Cout d'utilisation","TCO"]
-    GenderCO2 = ["Recyclage", "Emission de conception/entretien", "Emission à l'utilisation", "Emissions Totales"]
+    GenderCO2 = ["Emission de conception/entretien", "Emission à l'utilisation", "Emissions Totales"]
 
     plt.axis([0, r, -5000, max(max(TCO), max(emissionTotale))+5000])     
     plt.bar(r1, ycoutBonus, width = barWidth, color = 'lime', edgecolor ='black', linewidth = e)
@@ -612,7 +612,7 @@ def representation(ListeVoiture, ListeModele):
     
     ax2 = plt.gca().twinx()
     plt.axis([0, r, -5000, max(max(TCO), max(emissionTotale))+5000]) 
-    plt.bar(r2, xemissionRecyclage, width = barWidth, color = 'whitesmoke', edgecolor = 'black', linewidth = e)
+    #plt.bar(r2, xemissionRecyclage, width = barWidth, color = 'whitesmoke', edgecolor = 'black', linewidth = e)
     plt.bar(r2, xemissionConception, width = barWidth, color = 'silver', edgecolor = 'black', linewidth = e, bottom = Lj1)
     plt.bar(r2, xemissionUtilisation, width = barWidth, color = 'gray', edgecolor = 'black', linewidth = e, bottom = Lj2)
     et = plt.bar(r3, emissionTotale, width = barWidth2, color = 'darkgray', edgecolor = 'black', linewidth = e, hatch = '/')
