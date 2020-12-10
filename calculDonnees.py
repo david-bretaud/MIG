@@ -606,7 +606,7 @@ def representation(ListeVoiture, ListeModele):
     plt.bar(r1, ycoutUtilisation, width = barWidth, color = 'red', edgecolor ='black', tick_label = 'Utilisation',linewidth = e, bottom=Li3)
     tco = plt.bar(r0, TCO, width = barWidth2, color = 'navy', edgecolor = 'black',linewidth = e, hatch = '/')
     autolabel(tco, ax1)
-    plt.legend(GenderCout, loc = 'upper left', prop = {'size' : 7}, ncol = 3)
+    plt.legend(GenderCout, loc = 'lower left', prop = {'size' : 7}, ncol = 3)
     plt.ylabel('TCO (€/an)', fontsize = 15)
     plt.gca().yaxis.set_tick_params(labelsize = 7)
     
