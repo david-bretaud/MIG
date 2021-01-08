@@ -1,6 +1,6 @@
 from calculDonnees import * 
 
-Conversion = False                   # boolean : True si conversion thermique à électrique/hybride, False sinon
+Conversion = True                   # boolean : True si conversion thermique à électrique/hybride, False sinon
 Occasion = False                    # boolean : True si achat véhicule d'occasion, False sinon      
  
 DrivingCycle = urbain           # variable parmi urbain, periurbain, autoroute, rural (sans guillemets !)              
@@ -49,3 +49,5 @@ modele_autoroute_familiale = {'drivingCycle' : DrivingCycle, 'conversion' : Conv
 Taille = 'dcompacte'
 modele_autoroute_compacte =  {'drivingCycle' : DrivingCycle, 'conversion' : Conversion, 'occasion' : Occasion, 'distQuot' : DistanceQuotidienne , 'frequence' : Frequence, 'taille' : Taille}
 
+
+TestFinal(modele_urbain_petite)

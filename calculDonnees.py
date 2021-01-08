@@ -486,13 +486,13 @@ class Voitures :
         self.__update_coutEntretienTotal__()
         self.__update_coutUtilisation__()
         # Ramener tout sur 1 année :
-        self.emissionConception /= self.nombreAnnees
-        self.emissionUtilisation /= self.nombreAnnees
-        self.emissionRecyclage /= self.nombreAnnees
-        self.prixAchat /= self.nombreAnnees
-        self.coutBonusMalus /= self.nombreAnnees
-        self.coutEntretienTotal /= self.nombreAnnees
-        self.coutUtilisation /= self.nombreAnnees
+        self.emissionConception /= self.kilometrage/100
+        self.emissionUtilisation /= self.kilometrage/100
+        self.emissionRecyclage /= self.kilometrage/100
+        self.prixAchat /= self.kilometrage/100
+        self.coutBonusMalus /= self.kilometrage/100
+        self.coutEntretienTotal /= self.kilometrage/100
+        self.coutUtilisation /= self.kilometrage/100
         self.__update_TCO__()
         if True :
             print('Données du véhicule : ')
@@ -565,7 +565,17 @@ def representation(ListeVoiture, ListeModele):
             height = rect.get_height()
             ax.annotate('{}'.format(height),
                     xy=(rect.get_x() + rect.get_width() / 2, height),
-                    xytext=(0, 3),  # 3 points vertical offset
+                    xytext=(0, 4),  # 4 points vertical offset
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+
+    def autolabel2(rects, ax):
+        """Affiche la valeur finale au dessus du graphique"""
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate('{}'.format(height),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 8),  # 4 points vertical offset
                     textcoords="offset points",
                     ha='center', va='bottom')
             
@@ -598,35 +608,83 @@ def representation(ListeVoiture, ListeModele):
 
     GenderCout = ["Bonus-Malus", "Cout à l'achat", "Cout d'entretien", "Cout d'utilisation","TCO"]
     GenderCO2 = ["Emission de conception/entretien", "Emission à l'utilisation", "Emissions Totales"]
+    Gender3 = ["Emission à l'utilisation", "Emission de conception/entretien"]
 
-    plt.axis([0, r, -5000, max(max(TCO), max(emissionTotale))+5000])     
+    maximus = max(max(TCO), max(emissionTotale))
+    plt.axis([0, r, -maximus*0.4, maximus*1.2])     
     plt.bar(r1, ycoutBonus, width = barWidth, color = 'lime', edgecolor ='black', linewidth = e)
     plt.bar(r1, ycoutAchat, width = barWidth, color = 'yellow', edgecolor ='black', linewidth = e, bottom=Li1)
     plt.bar(r1, ycoutEntretien, width = barWidth, color = 'blue', edgecolor ='black', tick_label = 'Entretien',linewidth = e, bottom=Li2)
     plt.bar(r1, ycoutUtilisation, width = barWidth, color = 'red', edgecolor ='black', tick_label = 'Utilisation',linewidth = e, bottom=Li3)
     tco = plt.bar(r0, TCO, width = barWidth2, color = 'navy', edgecolor = 'black',linewidth = e, hatch = '/')
     autolabel(tco, ax1)
-    plt.legend(GenderCout, loc = 'lower left', prop = {'size' : 7}, ncol = 3)
-    plt.ylabel('TCO (€/an)', fontsize = 15)
+    plt.legend(GenderCout, loc = 'upper left', prop = {'size' : 7}, ncol = 3)
+    plt.ylabel('TCO (€/100km)', fontsize = 15)
     plt.gca().yaxis.set_tick_params(labelsize = 7)
     
     ax2 = plt.gca().twinx()
-    plt.axis([0, r, -5000, max(max(TCO), max(emissionTotale))+5000]) 
+    plt.axis([0, r, -maximus*0.4, maximus*1.2]) 
     #plt.bar(r2, xemissionRecyclage, width = barWidth, color = 'whitesmoke', edgecolor = 'black', linewidth = e)
     plt.bar(r2, xemissionConception, width = barWidth, color = 'silver', edgecolor = 'black', linewidth = e, bottom = Lj1)
     plt.bar(r2, xemissionUtilisation, width = barWidth, color = 'gray', edgecolor = 'black', linewidth = e, bottom = Lj2)
     et = plt.bar(r3, emissionTotale, width = barWidth2, color = 'darkgray', edgecolor = 'black', linewidth = e, hatch = '/')
     autolabel(et, ax2)
     plt.legend(GenderCO2, loc = 'upper right', prop = {'size' : 7}, ncol = 2)
-    plt.ylabel('Emission de C02 (kg/an)', fontsize = 15)
+    plt.ylabel('Emission de C02 (kg/100km)', fontsize = 15)
     plt.gca().yaxis.set_tick_params(labelsize = 7)
     
     plt.xlabel('Modèles de voiture', fontsize = 15)    
-    plt.title("TCO et émissions de CO2 sur une année d'utilisation", fontsize = 18)
+    plt.title("TCO et émissions de CO2 sur 100 km", fontsize = 18)
     plt.xticks(r4, ListeModele)
     plt.tick_params(axis = 'x', length = 3)
     fig.tight_layout()
     plt.show()
+
+    #======================= Representation prix uniquement===================
+    fig2, ax3 = plt.subplots() 
+    r12 = [x + 0.5 for x in R]
+    r22 = [x - 0.2 for x in r12]
+    r23 = [x + 0.2 for x in r12]
+    barWidth3 = 0.25
+
+    plt.axis([0, r, -max(TCO)*0.4, max(TCO)*1.2])    
+    plt.bar(r22, ycoutBonus, width = barWidth3, color = 'lime', edgecolor ='black', linewidth = e)
+    plt.bar(r22, ycoutAchat, width = barWidth3, color = 'yellow', edgecolor ='black', linewidth = e, bottom=Li1)
+    plt.bar(r22, ycoutEntretien, width = barWidth3, color = 'blue', edgecolor ='black', tick_label = 'Entretien',linewidth = e, bottom=Li2)
+    plt.bar(r22, ycoutUtilisation, width = barWidth3, color = 'red', edgecolor ='black', tick_label = 'Utilisation',linewidth = e, bottom=Li3)
+    tco = plt.bar(r23, TCO, width = barWidth/2, color = 'navy', edgecolor = 'black',linewidth = e, hatch = '/')
+    autolabel(tco, ax3) 
+    plt.legend(GenderCout, loc = 'upper right', prop = {'size' : 7}, ncol = 5)
+    plt.ylabel('TCO (€/100km)', fontsize = 15)
+    plt.gca().yaxis.set_tick_params(labelsize = 7)
+
+    plt.xlabel('Modèles de voiture', fontsize = 15)    
+    plt.title("TCO en € sur 100 km", fontsize = 18)
+    plt.xticks(r12, ListeModele)
+    plt.tick_params(axis = 'x', length = 3)
+    fig2.tight_layout()
+    plt.show()
+
+    #======================= Representation emission uniquement===================
+    fig3, ax4 = plt.subplots() 
+
+    plt.axis([0, r, -max(emissionTotale)*0.2, max(emissionTotale)*1.2]) 
+    et = plt.bar(r12, emissionTotale, width = 0, color = 'gray', edgecolor = 'black', linewidth = e)
+    autolabel2(et, ax4)
+    #plt.bar(r2, xemissionRecyclage, width = barWidth, color = 'whitesmoke', edgecolor = 'black', linewidth = e)
+    plt.bar(r12, xemissionConception, width = barWidth3, color = 'silver', edgecolor = 'black', linewidth = e, bottom = Lj1)
+    plt.bar(r12, xemissionUtilisation, width = barWidth3, color = 'gray', edgecolor = 'black', linewidth = e, bottom = Lj2)
+    plt.legend(Gender3, loc = 'upper right', prop = {'size' : 7}, ncol = 2)
+    plt.ylabel('Emission de C02 (kg/100km)', fontsize = 15)
+    plt.gca().yaxis.set_tick_params(labelsize = 7)
+    
+    plt.xlabel('Modèles de voiture', fontsize = 15)    
+    plt.title("Emissions de CO2 sur 100 km", fontsize = 18)
+    plt.xticks(r12, ListeModele)
+    plt.tick_params(axis = 'x', length = 3)
+    fig3.tight_layout()
+    plt.show()
+
 
 def TestFinal(param):
     ListeVoiture, ListeModele = creationListe(param)
